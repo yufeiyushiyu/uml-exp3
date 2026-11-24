@@ -1,0 +1,127 @@
+@startuml
+skinparam defaultFontName "Noto Sans CJK SC"
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+skinparam class {
+  BackgroundColor #FAFCFF
+  BorderColor #4A6FA5
+  ArrowColor #4A6FA5
+}
+skinparam package {
+  BackgroundColor #FFFFFF
+  BorderColor #9DB2C8
+}
+package "操控与规则域 control" {
+
+  class Command {
+    - commandId : String
+    - deviceId : String
+    - actionId : String
+    - params : Map<String, Object>
+    - state : CommandState
+    - issuedBy : String
+    - issuedAt : DateTime
+    - retryCount : Integer
+    + markSending() : void
+    + markSuccess(ack : CommandAck) : void
+    + markFailure(reason : String) : void
+    + canRetry() : Boolean
+  }
+
+  class CommandExecutor {
+    - checker : PermissionChecker
+    - gatewayClient : GatewayClient
+    - maxRetry : Integer
+    - ackTimeoutMs : Integer
+    + submit(cmd : Command) : CommandResult
+    - validate(cmd : Command) : void
+    - dispatch(cmd : Command) : void
+    - awaitAck(cmd : Command) : CommandAck
+  }
+
+  class CommandResult {
+    - commandId : String
+    - success : Boolean
+    - code : String
+    - message : String
+  }
+
+  class CommandAck {
+    - commandId : String
+    - success : Boolean
+    - actualValue : Double
+    - ts : DateTime
+  }
+
+  interface PermissionChecker <<interface>> {
+    + check(userId : String, deviceId : String, actionId : String, params : Map) : Boolean
+  }
+
+  class RolePermissionChecker {
+    - policyService : PolicyService
+    + check(userId : String, deviceId : String, actionId : String, params : Map) : Boolean
+  }
+
+  interface GatewayClient <<interface>> {
+    + send(gatewayId : String, payload : String) : Boolean
+  }
+
+  class MqttGatewayClient
+
+  class Rule {
+    - ruleId : String
+    - name : String
+    - enabled : Boolean
+    - condition : String
+    - targetActionId : String
+    - targetDeviceId : String
+    + match(obs : Observation) : Boolean
+    + toCommand() : Command
+  }
+
+  class RuleEngine {
+    - rules : List<Rule>
+    - executor : CommandExecutor
+    + evaluate(obs : Observation) : List<Command>
+    + reload() : void
+  }
+
+  class Scene {
+    - sceneId : String
+    - name : String
+    - commands : List<Command>
+    + activate() : List<CommandResult>
+  }
+
+  enum CommandState {
+    CREATED
+    VALIDATING
+    REJECTED
+    SENDING
+    WAIT_ACK
+    SUCCEEDED
+    FAILED
+    TIMEOUT
+    REVOKED
+  }
+}
+
+CommandExecutor "1" --> "1" PermissionChecker : 使用 >
+PermissionChecker <|.. RolePermissionChecker
+CommandExecutor "1" --> "1" GatewayClient : 使用 >
+GatewayClient <|.. MqttGatewayClient
+CommandExecutor "1" ..> "1" CommandResult : 返回 >
+CommandExecutor "1" ..> "1" CommandAck : 等待 >
+Command "1" --> "1" CommandState : 处于 >
+RuleEngine "1" o-- "0..*" Rule : 管理 >
+RuleEngine "1" --> "1" CommandExecutor : 委托下发 >
+Rule "1" ..> "0..1" Command : 生成 >
+Scene "1" o-- "1..*" Command : 编排 >
+RolePermissionChecker --> PolicyService : 依赖
+note right of Command
+  指令是"可撤销的命令对象"：
+  下发前的 CREATED/VALIDATING/REJECTED
+  三态可撤销，SENDING 之后不可撤销
+end note
+@enduml

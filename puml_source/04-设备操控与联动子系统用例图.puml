@@ -1,0 +1,44 @@
+@startuml
+skinparam defaultFontName "Noto Sans CJK SC"
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam actorStyle awesome
+skinparam usecase {
+  BackgroundColor #F2F6FC
+  BorderColor #4A6FA5
+  ArrowColor #4A6FA5
+}
+skinparam rectangle {
+  BackgroundColor #FFFFFF
+  BorderColor #9DB2C8
+}
+left to right direction
+actor "运维工程师" as Ops
+actor "系统管理员" as Admin
+
+rectangle "设备操控与联动子系统" {
+  usecase "在节点上选择动作" as UC1
+  usecase "填写动作参数" as UC2
+  usecase "提交指令" as UC3
+  usecase "权限与安全校验" as UC4
+  usecase "指令下发与回执" as UC5
+  usecase "指令超时重试" as UC6
+  usecase "撤销未生效指令" as UC7
+  usecase "维护联动规则" as UC8
+  usecase "规则自动触发指令" as UC9
+}
+
+Ops --> UC1
+Admin --> UC8
+UC1 ..> UC2 : <<include>>
+UC2 ..> UC3 : <<include>>
+UC3 ..> UC4 : <<include>>
+UC3 ..> UC5 : <<include>>
+UC5 <.. UC6 : <<extend>>
+UC5 <.. UC7 : <<extend>>
+UC8 ..> UC9 : <<include>>
+note bottom of UC4
+  校验四要素：角色权限、
+  设备归属、动作白名单、参数区间
+end note
+@enduml

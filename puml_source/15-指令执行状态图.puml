@@ -1,0 +1,42 @@
+@startuml
+skinparam defaultFontName "Noto Sans CJK SC"
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam state {
+  BackgroundColor #F2F6FC
+  BorderColor #4A6FA5
+  ArrowColor #4A6FA5
+}
+skinparam activity {
+  BackgroundColor #F2F6FC
+  BorderColor #4A6FA5
+  ArrowColor #4A6FA5
+  DiamondBackgroundColor #FFF6E5
+}
+[*] --> 已创建 : 图谱面板提交动作
+已创建 --> 校验中 : 进入操控服务
+校验中 --> 已拒绝 : 权限不足 / 参数越界 / 动作不在白名单
+校验中 --> 待撤销 : 校验通过但尚未下发
+待撤销 --> 已撤销 : 用户撤销
+待撤销 --> 下发中 : 确认下发
+下发中 --> 等待回执 : 报文已送达网关
+等待回执 --> 执行成功 : 收到 ACK 且 actualValue 生效
+等待回执 --> 执行失败 : 收到 NACK
+等待回执 --> 超时 : 超过 ackTimeoutMs 未回执
+超时 --> 下发中 : 未超过 maxRetry 次重试
+超时 --> 执行失败 : 超过 maxRetry 次
+执行成功 --> [*]
+执行失败 --> [*]
+已拒绝 --> [*]
+已撤销 --> [*]
+
+note right of 已拒绝
+  拒绝原因写入审计日志，
+  并在图谱面板以红色气泡回显
+end note
+note right of 等待回执
+  只有进入下发中之后
+  才不可撤销，体现
+  "可撤销命令对象"的设计
+end note
+@enduml

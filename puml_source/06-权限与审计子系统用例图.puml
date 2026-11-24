@@ -1,0 +1,38 @@
+@startuml
+skinparam defaultFontName "Noto Sans CJK SC"
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam actorStyle awesome
+skinparam usecase {
+  BackgroundColor #F2F6FC
+  BorderColor #4A6FA5
+  ArrowColor #4A6FA5
+}
+skinparam rectangle {
+  BackgroundColor #FFFFFF
+  BorderColor #9DB2C8
+}
+left to right direction
+actor "系统管理员" as Admin
+actor "用户" as U
+
+rectangle "权限与审计子系统" {
+  usecase "登录并建立会话" as UC1
+  usecase "维护角色" as UC2
+  usecase "为角色分配权限" as UC3
+  usecase "分配用户角色" as UC4
+  usecase "记录操作审计日志" as UC5
+  usecase "查询审计日志" as UC6
+  usecase "强制下线会话" as UC7
+}
+
+Admin --> UC2
+Admin --> UC3
+Admin --> UC4
+Admin --> UC6
+Admin --> UC7
+U --> UC1
+UC2 ..> UC5 : <<include>>
+UC4 ..> UC5 : <<include>>
+UC1 ..> UC5 : <<include>>
+@enduml

@@ -1,0 +1,51 @@
+@startuml
+skinparam defaultFontName "Noto Sans CJK SC"
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam sequence {
+  ArrowColor #4A6FA5
+  LifeLineBorderColor #9DB2C8
+  LifeLineBackgroundColor #F4F8FD
+  ParticipantBackgroundColor #F2F6FC
+  ParticipantBorderColor #4A6FA5
+  GroupBackgroundColor #FFFDF5
+  GroupBorderColor #C9A227
+}
+autonumber
+control "告警服务\nAlarmService" as AS
+entity "告警规则\nAlarmRule" as RULE
+control "通知器\nWebSocketNotifier" as NOTI
+control "审计服务\nAuditService" as AUD
+boundary "图谱视图 / 告警面板" as UI
+actor "运维工程师" as U
+
+AS -> AS : 接收 Observation 事件
+AS -> RULE : evaluate(obs)
+activate RULE
+RULE --> AS : 命中 / 未命中
+deactivate RULE
+
+alt 命中且持续达标
+  AS -> AS : 检查抑制窗口(同节点+指标+等级)
+  alt 未在抑制窗口内
+    AS -> AS : 创建 Alarm(state=已产生)
+    AS -> NOTI : notify(alarm)
+    activate NOTI
+    NOTI -> UI : push alarm.new
+    deactivate NOTI
+    UI -> U : 横幅提示 + 告警列表新增一条
+    AS -> AUD : record(告警产生, alarmId)
+  else 处于抑制窗口内
+    AS -> AS : 仅累加计数，不重复推送
+  end
+else 未命中
+  AS -> AS : 结束本轮评估
+end
+
+U -> UI : 点击"确认告警"
+UI -> AS : POST /api/alarms/{alarmId}/ack
+AS -> AS : state 置为已确认，记录确认人
+AS -> AUD : record(告警确认, alarmId, userId)
+AS --> UI : 200
+UI --> U : 状态变为"已确认"
+@enduml

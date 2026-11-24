@@ -1,0 +1,60 @@
+@startuml
+skinparam defaultFontName "Noto Sans CJK SC"
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam component {
+  BackgroundColor #F2F6FC
+  BorderColor #4A6FA5
+}
+skinparam package {
+  BackgroundColor #FFFFFF
+  BorderColor #9DB2C8
+}
+skinparam node {
+  BackgroundColor #FBFBF7
+  BorderColor #8A8A6E
+}
+skinparam database {
+  BackgroundColor #F2F6FC
+  BorderColor #4A6FA5
+}
+skinparam arrow {
+  Color #4A6FA5
+}
+node "用户终端" <<device>> {
+  artifact "Chrome / Edge 浏览器" as BROWSER
+}
+
+node "应用服务器" <<execution environment>> {
+  node "Python 3.11 运行时" {
+    artifact "uvicorn + FastAPI\n（api / app 层）" as APP
+  }
+  node "Mosquitto 2.x" {
+    artifact "MQTT Broker" as MQTT
+  }
+}
+
+node "数据服务器" <<execution environment>> {
+  database "SQLite 3\nkg.db / iot.db" as SQL
+  database "Neo4j 5（可选）" as NEO
+}
+
+node "现场网络" <<LAN>> {
+  node "物联网网关 GW-01" <<device>> {
+    artifact "GW-Agent" as AGENT
+  }
+  node "传感器/执行器" <<device>> as FIELD
+}
+
+BROWSER --> APP : HTTPS 443 / WSS
+APP --> SQL : 文件级访问
+APP --> NEO : Bolt 7687
+APP --> MQTT : TCP 1883
+AGENT --> MQTT : TCP 1883
+AGENT --> FIELD : RS-485 / GPIO
+note right of SQL
+  原型阶段单机部署，
+  kg.db 与 iot.db 分库，
+  便于后续替换为 Neo4j 而不影响时序数据
+end note
+@enduml

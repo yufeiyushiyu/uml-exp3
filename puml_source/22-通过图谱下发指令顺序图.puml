@@ -1,0 +1,89 @@
+@startuml
+skinparam defaultFontName "Noto Sans CJK SC"
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam sequence {
+  ArrowColor #4A6FA5
+  LifeLineBorderColor #9DB2C8
+  LifeLineBackgroundColor #F4F8FD
+  ParticipantBackgroundColor #F2F6FC
+  ParticipantBorderColor #4A6FA5
+  GroupBackgroundColor #FFFDF5
+  GroupBorderColor #C9A227
+}
+autonumber
+actor "运维工程师" as U
+boundary "图谱视图" as UI
+control "操控 API\nCommandController" as API
+control "操控服务\nCommandExecutor" as EXEC
+control "权限策略\nPolicyService" as POL
+control "审计服务\nAuditService" as AUD
+control "网关客户端\nMqttGatewayClient" as GW
+boundary "网关设备" as EDGE
+database "设备档案库" as DB
+
+U -> UI : 选择动作并填写参数
+UI -> UI : 就地校验参数格式与区间
+UI -> API : POST /api/commands {deviceId, actionId, params}
+activate API
+API -> EXEC : submit(Command)
+activate EXEC
+EXEC -> EXEC : 状态置为校验中
+EXEC -> POL : check(userId, deviceId, actionId, params)
+activate POL
+POL -> DB : 查询角色权限与设备归属
+activate DB
+DB --> POL : 权限记录
+deactivate DB
+POL --> EXEC : 通过 / 拒绝(原因)
+deactivate POL
+
+alt 校验通过
+  EXEC -> EXEC : 状态置为待撤销
+  EXEC --> API : 202 Accepted {commandId, 待确认}
+  API --> UI : 展示确认提示
+  UI --> U : 请确认下发
+  U -> UI : 确认下发
+  UI -> API : POST /api/commands/{commandId}/confirm
+  API -> EXEC : dispatch(cmd)
+  EXEC -> EXEC : 状态置为下发中
+  EXEC -> GW : send(gatewayId, payload)
+  activate GW
+  GW -> EDGE : MQTT publish iot/cmd/{deviceId}
+  activate EDGE
+  EDGE --> GW : PUBACK
+  deactivate EDGE
+  GW --> EXEC : 投递成功
+  deactivate GW
+  EXEC -> EXEC : 状态置为等待回执
+  EXEC -> AUD : record(下发, commandId, 待回执)
+  EDGE -> GW : MQTT publish iot/ack/{deviceId} {result, actualValue}
+  GW -> EXEC : onAck(CommandAck)
+  EXEC -> EXEC : 状态置为执行成功
+  EXEC -> AUD : record(执行成功, commandId)
+  EXEC --> API : CommandResult(success)
+  API --> UI : 200 {commandId, success, actualValue}
+  UI -> UI : 局部刷新节点属性
+  UI --> U : 绿色回执气泡
+
+else 校验不通过
+  EXEC -> EXEC : 状态置为已拒绝
+  EXEC -> AUD : record(拒绝, commandId, 原因)
+  EXEC --> API : CommandResult(code=NO_PERMISSION)
+  API --> UI : 403 {code, message}
+  UI --> U : 红色提示"权限不足或参数越界"
+
+else 等待回执超时
+  EXEC -> EXEC : 状态置为超时
+  loop 重试次数 < maxRetry(默认2次)
+    EXEC -> GW : 重新投递
+  end
+  EXEC -> EXEC : 状态置为执行失败
+  EXEC -> AUD : record(执行失败, commandId, 超时)
+  API --> UI : 200 {success=false, code=TIMEOUT}
+  UI --> U : 红色失败气泡 + 可重试入口
+end
+
+deactivate EXEC
+deactivate API
+@enduml

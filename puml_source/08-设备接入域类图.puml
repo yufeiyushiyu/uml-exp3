@@ -1,0 +1,168 @@
+@startuml
+skinparam defaultFontName "Noto Sans CJK SC"
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+skinparam class {
+  BackgroundColor #FAFCFF
+  BorderColor #4A6FA5
+  ArrowColor #4A6FA5
+}
+skinparam package {
+  BackgroundColor #FFFFFF
+  BorderColor #9DB2C8
+}
+package "设备与接入域 device" {
+
+  abstract class Device {
+    # deviceId : String
+    # name : String
+    # model : String
+    # status : DeviceStatus
+    # gatewayId : String
+    # locationId : String
+    + getMetrics() : List<Metric>
+    + snapshot() : Map<String, Object>
+    + bindTo(gatewayId : String, locationId : String) : void
+  }
+
+  class Sensor {
+    - samplingPeriod : Integer
+    + readValue(metricKey : String) : Observation
+    + getLastObservation(metricKey : String) : Observation
+  }
+
+  class Actuator {
+    - supportedActions : List<Action>
+    + execute(action : Action, params : Map) : Command
+    + getSupportedActions() : List<Action>
+  }
+
+  class Gateway {
+    - gatewayId : String
+    - name : String
+    - protocol : Protocol
+    - state : GatewayState
+    - lastHeartbeat : DateTime
+    - capacity : Integer
+    + connect() : Boolean
+    + heartbeat() : void
+    + isAlive(thresholdSec : Integer) : Boolean
+  }
+
+  class Location {
+    - locationId : String
+    - name : String
+    - level : Integer
+    - parentId : String
+    + path() : String
+    + isAncestorOf(other : Location) : Boolean
+  }
+
+  class Metric {
+    - key : String
+    - name : String
+    - unit : String
+    - valueType : String
+    - minValue : Double
+    - maxValue : Double
+    + inRange(v : Double) : Boolean
+  }
+
+  class Action {
+    - actionId : String
+    - name : String
+    - paramsSchema : Map<String, String>
+    - preconditions : List<String>
+    - riskLevel : Integer
+    + validateParams(p : Map) : Boolean
+  }
+
+  class Observation {
+    - obsId : String
+    - deviceId : String
+    - metricKey : String
+    - value : Double
+    - ts : DateTime
+    - quality : Integer
+  }
+
+  class TelemetryMessage {
+    - deviceId : String
+    - gatewayId : String
+    - ts : DateTime
+    - values : Map<String, Double>
+    - checksum : String
+    + isValid() : Boolean
+  }
+
+  interface ProtocolAdapter <<interface>> {
+    + supports(p : Protocol) : Boolean
+    + decode(raw : String) : TelemetryMessage
+  }
+
+  class MqttAdapter
+  class HttpAdapter
+
+  class IngestService {
+    - adapters : List<ProtocolAdapter>
+    - registry : DeviceRegistry
+    + ingest(raw : String) : TelemetryMessage
+    + persist(msg : TelemetryMessage) : void
+    + publishChange(msg : TelemetryMessage) : void
+  }
+
+  class DeviceRegistry {
+    - devices : Map<String, Device>
+    + register(d : Device) : void
+    + find(deviceId : String) : Device
+    + listByLocation(locationId : String) : List<Device>
+    + markOffline(deviceId : String) : void
+  }
+
+  enum DeviceStatus {
+    ONLINE
+    OFFLINE
+    FAULT
+    MAINTENANCE
+  }
+
+  enum GatewayState {
+    DISCONNECTED
+    CONNECTING
+    CONNECTED
+    FAULT
+  }
+
+  enum Protocol {
+    MQTT
+    HTTP
+    COAP
+  }
+}
+
+Device <|-- Sensor
+Device <|-- Actuator
+Device "1" *-- "1..*" Metric : 具有 >
+Actuator "1" o-- "1..*" Action : 支持 >
+Device --> "1" Gateway : 经由连接
+Device --> "1" Location : 位于
+Location "0..1" o-- "0..*" Location : 上级/下级
+Sensor "1" -- "0..*" Observation : 产生 >
+Observation "1" ..> "1" Metric : 对应 >
+Gateway "1" -- "0..*" TelemetryMessage : 上报 >
+IngestService ..|> ProtocolAdapter : 使用
+ProtocolAdapter <|.. MqttAdapter
+ProtocolAdapter <|.. HttpAdapter
+IngestService --> DeviceRegistry : 查询设备
+IngestService --> "1" TelemetryMessage : 处理 >
+note right of Location
+  位置为层级结构：
+  园区 > 楼栋 > 楼层 > 房间，
+  是图谱中"位于"关系的承载者
+end note
+note bottom of Actuator
+  Action 的白名单在入库时固化，
+  操控时只能选择已注册动作
+end note
+@enduml

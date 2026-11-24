@@ -1,0 +1,55 @@
+@startuml
+skinparam defaultFontName "Noto Sans CJK SC"
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam actorStyle awesome
+skinparam usecase {
+  BackgroundColor #F2F6FC
+  BorderColor #4A6FA5
+  ArrowColor #4A6FA5
+}
+skinparam rectangle {
+  BackgroundColor #FFFFFF
+  BorderColor #9DB2C8
+}
+left to right direction
+actor "普通用户\n（值班员）" as Viewer
+actor "运维工程师" as Ops
+
+rectangle "图谱可视化与交互子系统" {
+  usecase "加载全局图谱" as UC1
+  usecase "渐进式分区加载" as UC2
+  usecase "按实体类型筛选" as UC3
+  usecase "按位置层级筛选" as UC4
+  usecase "按关系类型高亮" as UC5
+  usecase "放大缩小与拖拽平移" as UC6
+  usecase "自动布局" as UC7
+  usecase "点选节点" as UC8
+  usecase "查看属性明细" as UC9
+  usecase "查看设备实时读数" as UC10
+  usecase "跳转到操控面板" as UC11
+  usecase "导出当前子图为图片" as UC12
+}
+
+Viewer --> UC1
+Viewer --> UC3
+Viewer --> UC6
+Viewer --> UC8
+Viewer --> UC12
+Ops --> UC1
+Ops --> UC10
+Ops --> UC11
+
+UC1 ..> UC2 : <<include>>
+UC1 <.. UC3 : <<extend>>
+UC3 <.. UC4 : <<extend>>
+UC3 ..> UC5 : <<include>>
+UC1 ..> UC7 : <<include>>
+UC8 ..> UC9 : <<include>>
+UC9 <.. UC10 : <<extend>>
+UC9 <.. UC11 : <<extend>>
+note bottom of UC2
+  单次渲染节点上限 300，
+  超出按位置层级分页加载
+end note
+@enduml

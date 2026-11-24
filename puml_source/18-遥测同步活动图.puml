@@ -1,0 +1,50 @@
+@startuml
+skinparam defaultFontName "Noto Sans CJK SC"
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam state {
+  BackgroundColor #F2F6FC
+  BorderColor #4A6FA5
+  ArrowColor #4A6FA5
+}
+skinparam activity {
+  BackgroundColor #F2F6FC
+  BorderColor #4A6FA5
+  ArrowColor #4A6FA5
+  DiamondBackgroundColor #FFF6E5
+}
+start
+:网关按采样周期打包遥测报文;
+:网关通过 MQTT 主题上报;
+:接入服务按 Topic 路由到对应协议适配器;
+:解码报文并校验报文校验和;
+if (报文是否合法?) then (合法)
+  :写入时序读数表;
+  :定位到设备对应的图谱节点;
+  :按实体属性模式合并属性;
+  :节点版本号加一;
+  :发布 graph.delta 增量事件;
+  :图谱视图按 nodeId 局部重绘，不整体刷新;
+  :告警服务同步评估告警规则;
+  if (命中规则?) then (命中)
+    :按抑制窗口生成并推送告警;
+  else (未命中)
+    :仅刷新节点颜色;
+  endif
+  stop
+else (不合法)
+  :计入该设备的异常帧计数;
+  if (连续异常帧是否达到 3 帧?) then (是)
+    :标记设备为故障态;
+    :生成 CRITICAL 级告警;
+  else (否)
+    :仅记录日志，等待下一帧;
+  endif
+  stop
+endif
+floating note left
+  参与者：网关设备（外部系统）
+  协作组件：接入服务、图谱服务、
+  告警服务、图谱视图
+end note
+@enduml

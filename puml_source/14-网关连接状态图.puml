@@ -1,0 +1,35 @@
+@startuml
+skinparam defaultFontName "Noto Sans CJK SC"
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam state {
+  BackgroundColor #F2F6FC
+  BorderColor #4A6FA5
+  ArrowColor #4A6FA5
+}
+skinparam activity {
+  BackgroundColor #F2F6FC
+  BorderColor #4A6FA5
+  ArrowColor #4A6FA5
+  DiamondBackgroundColor #FFF6E5
+}
+[*] --> 未连接
+未连接 --> 连接中 : connect()
+连接中 --> 已连接 : 鉴权通过且握手成功
+连接中 --> 未连接 : 鉴权失败 / 握手超时 10 秒
+已连接 --> 已连接 : heartbeat(30 秒)
+已连接 --> 降级 : 上报成功率低于 80%
+降级 --> 已连接 : 上报成功率恢复
+已连接 --> 故障 : 连续 5 次上报失败
+降级 --> 故障 : 重连 3 次均失败
+故障 --> 连接中 : 重连定时器触发
+已连接 --> 未连接 : disconnect()
+降级 --> 未连接 : disconnect()
+故障 --> 未连接 : 管理员强制断开
+
+note right of 降级
+  降级态下网关仍可上报，
+  但系统对该网关下设备
+  的指令下发做限流处理
+end note
+@enduml

@@ -1,0 +1,63 @@
+@startuml
+skinparam defaultFontName "Noto Sans CJK SC"
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam sequence {
+  ArrowColor #4A6FA5
+  LifeLineBorderColor #9DB2C8
+  LifeLineBackgroundColor #F4F8FD
+  ParticipantBackgroundColor #F2F6FC
+  ParticipantBorderColor #4A6FA5
+  GroupBackgroundColor #FFFDF5
+  GroupBorderColor #C9A227
+}
+autonumber
+boundary "网关设备" as GW
+control "MQTT 消息代理" as MQ
+control "接入服务\nIngestService" as ING
+control "协议适配器\nMqttAdapter" as ADP
+entity "设备注册表\nDeviceRegistry" as REG
+database "时序库 observations" as TS
+control "图谱服务\nGraphService" as GSVC
+control "增量推送\nWebSocketHub" as WS
+boundary "图谱视图" as UI
+
+GW -> MQ : publish iot/telemetry/GW-01
+MQ -> ING : deliver(主题, 报文)
+activate ING
+ING -> ADP : decode(raw)
+activate ADP
+ADP --> ING : TelemetryMessage
+deactivate ADP
+ING -> ING : 校验 checksum 与字段范围
+
+alt 报文合法
+  ING -> REG : find(deviceId)
+  activate REG
+  REG --> ING : Device（含属性模式与所属网关）
+  deactivate REG
+  ING -> TS : saveBatch(observations)
+  activate TS
+  TS --> ING : 写入条数
+  deactivate TS
+  ING -> GSVC : mergeProps(nodeId, values)
+  activate GSVC
+  GSVC -> GSVC : 按属性模式合并并 version++
+  GSVC -> WS : broadcast(graph.delta)
+  deactivate GSVC
+  WS -> UI : 增量事件 {nodeId, props, version}
+  UI -> UI : 按 nodeId 局部重绘节点与颜色
+else 报文非法
+  ING -> ING : 异常帧计数 +1
+  alt 连续异常帧 >= 3
+    ING -> REG : markOffline/FAULT(deviceId)
+    ING -> GSVC : 标记节点为故障态
+    GSVC -> WS : broadcast(device.fault)
+    WS -> UI : 节点描红并弹出故障提示
+  else 未达阈值
+    ING -> ING : 仅记录 WARN 日志
+  end
+end
+
+deactivate ING
+@enduml

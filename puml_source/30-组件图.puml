@@ -1,0 +1,69 @@
+@startuml
+skinparam defaultFontName "Noto Sans CJK SC"
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam component {
+  BackgroundColor #F2F6FC
+  BorderColor #4A6FA5
+}
+skinparam package {
+  BackgroundColor #FFFFFF
+  BorderColor #9DB2C8
+}
+skinparam node {
+  BackgroundColor #FBFBF7
+  BorderColor #8A8A6E
+}
+skinparam database {
+  BackgroundColor #F2F6FC
+  BorderColor #4A6FA5
+}
+skinparam arrow {
+  Color #4A6FA5
+}
+left to right direction
+package "客户端" {
+  [图谱 Web 前端\nVue3 + vis-network] as FE
+}
+
+package "应用服务器" {
+  [API 网关 / 路由层\nFastAPI] as GWAPI
+  [图谱服务组件\nGraphService] as GS
+  [设备接入组件\nIngestService] as ING
+  [操控组件\nCommandExecutor] as CMD
+  [告警组件\nAlarmService] as ALM
+  [认证与审计组件\nAuthService] as AUT
+}
+
+package "消息与数据" {
+  [MQTT 消息代理\nMosquitto] as MQ
+  database "图谱库\nSQLite（可选 Neo4j）" as GDB
+  database "时序库\nobservations 表" as TDB
+}
+
+package "现场层" {
+  [网关固件\nGW-Agent] as EDGE
+  [传感器 / 执行器] as SENSOR
+}
+
+FE --> GWAPI : «REST» HTTPS
+FE --> GWAPI : «WebSocket» graph.delta
+GWAPI --> GS : «local» 查询子图
+GWAPI --> CMD : «local» 提交指令
+GWAPI --> AUT : «local» 鉴权
+GS --> GDB : «JDBC/SQL»
+CMD --> MQ : «MQTT» iot/cmd
+ING --> MQ : «MQTT» 订阅 iot/telemetry
+ING --> TDB : «SQL» 写入读数
+ING --> GS : «local» 合并属性
+ING --> ALM : «local» 评估规则
+ALM --> GWAPI : «local» 推送告警
+EDGE --> MQ : «MQTT» 上报与回执
+EDGE --> SENSOR : «Modbus/GPIO»
+AUT --> GDB : «SQL» 用户与权限
+note right of GWAPI
+  单进程内按组件划分模块，
+  组件间通过显式接口调用，
+  便于后续按服务拆分部署
+end note
+@enduml

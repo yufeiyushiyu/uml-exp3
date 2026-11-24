@@ -1,0 +1,91 @@
+@startuml
+skinparam defaultFontName "Noto Sans CJK SC"
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam actorStyle awesome
+skinparam usecase {
+  BackgroundColor #F2F6FC
+  BorderColor #4A6FA5
+  ArrowColor #4A6FA5
+}
+skinparam rectangle {
+  BackgroundColor #FFFFFF
+  BorderColor #9DB2C8
+}
+left to right direction
+
+actor "系统管理员" as Admin
+actor "运维工程师" as Ops
+actor "普通用户\n（值班员）" as Viewer
+actor "网关设备" as GW <<外部系统>>
+
+Ops <|-- Admin
+
+rectangle "物联知图平台" {
+  package "图谱可视化与检索" {
+    usecase "浏览全局图谱" as UC101
+    usecase "按类型与位置筛选子图" as UC102
+    usecase "检索实体" as UC103
+    usecase "查看节点详情" as UC104
+    usecase "调整图谱布局" as UC105
+  }
+  package "设备接入与同步" {
+    usecase "网关接入与注册" as UC201
+    usecase "接收遥测数据" as UC202
+    usecase "增量更新图谱" as UC203
+    usecase "维护设备档案" as UC204
+  }
+  package "设备操控与联动" {
+    usecase "通过图谱下发动作" as UC301
+    usecase "校验操控权限" as UC302
+    usecase "跟踪指令回执" as UC303
+    usecase "维护联动规则" as UC304
+  }
+  package "告警与历史" {
+    usecase "订阅阈值告警" as UC401
+    usecase "处理告警" as UC402
+    usecase "查询历史数据" as UC403
+  }
+  package "权限与审计" {
+    usecase "维护角色与权限" as UC501
+    usecase "查询操作审计" as UC502
+  }
+  usecase "登录并建立会话" as UC001
+}
+
+Admin --> UC001
+Admin --> UC501
+Admin --> UC502
+Admin --> UC204
+Admin --> UC304
+
+Ops --> UC001
+Ops --> UC101
+Ops --> UC301
+Ops --> UC401
+Ops --> UC403
+Ops --> UC104
+
+Viewer --> UC001
+Viewer --> UC101
+Viewer --> UC102
+Viewer --> UC103
+Viewer --> UC104
+Viewer --> UC105
+
+GW --> UC201
+GW --> UC202
+GW --> UC203
+
+UC101 ..> UC104 : <<include>>
+UC301 ..> UC302 : <<include>>
+UC301 ..> UC303 : <<include>>
+UC202 ..> UC203 : <<include>>
+UC101 <.. UC102 : <<extend>>
+UC101 <.. UC105 : <<extend>>
+UC401 <.. UC402 : <<extend>>
+note right of UC302
+  权限不足时抛出
+  拒绝并写审计日志
+end note
+@enduml

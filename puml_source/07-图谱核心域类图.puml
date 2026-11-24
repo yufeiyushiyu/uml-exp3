@@ -1,0 +1,144 @@
+@startuml
+skinparam defaultFontName "Noto Sans CJK SC"
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+skinparam class {
+  BackgroundColor #FAFCFF
+  BorderColor #4A6FA5
+  ArrowColor #4A6FA5
+}
+skinparam package {
+  BackgroundColor #FFFFFF
+  BorderColor #9DB2C8
+}
+package "图谱核心域 kgcore" {
+
+  class Ontology {
+    - name : String
+    - version : String
+    - entityTypes : Map<String, EntityType>
+    - relationTypes : Map<String, RelationType>
+    + registerEntityType(t : EntityType) : void
+    + registerRelationType(t : RelationType) : void
+    + validateNode(n : GraphNode) : Boolean
+    + validateEdge(e : GraphEdge) : Boolean
+  }
+
+  class EntityType {
+    - code : String
+    - category : EntityCategory
+    - displayColor : String
+    - propertySchema : Map<String, String>
+    + allowsProperty(key : String) : Boolean
+  }
+
+  class RelationType {
+    - code : String
+    - sourceCategory : EntityCategory
+    - targetCategory : EntityCategory
+    - cardinality : String
+    - directed : Boolean
+    + isValidPair(s : EntityCategory, t : EntityCategory) : Boolean
+  }
+
+  class GraphNode {
+    - nodeId : String
+    - label : String
+    - entityType : String
+    - props : Map<String, Object>
+    - version : Integer
+    + putProperty(k : String, v : Object) : void
+    + mergeProps(p : Map) : void
+    + touch() : Integer
+  }
+
+  class GraphEdge {
+    - edgeId : String
+    - relationType : String
+    - sourceId : String
+    - targetId : String
+    - weight : Double
+  }
+
+  class KnowledgeGraph {
+    - nodes : Map<String, GraphNode>
+    - edges : List<GraphEdge>
+    - ontology : Ontology
+    + addNode(n : GraphNode) : void
+    + addEdge(e : GraphEdge) : void
+    + removeNode(nodeId : String) : void
+    + query(q : GraphQuery) : Subgraph
+    + neighbors(nodeId : String, depth : Integer) : Subgraph
+  }
+
+  class GraphQuery {
+    - entityTypes : List<String>
+    - locationPath : String
+    - relationTypes : List<String>
+    - keyword : String
+    - limit : Integer
+  }
+
+  class Subgraph {
+    - nodes : List<GraphNode>
+    - edges : List<GraphEdge>
+    + size() : Integer
+    + toViewJson() : String
+  }
+
+  interface GraphRepository <<interface>> {
+    + loadSubgraph(q : GraphQuery) : Subgraph
+    + upsertNode(n : GraphNode) : void
+    + upsertEdge(e : GraphEdge) : void
+    + deleteNode(nodeId : String) : void
+  }
+
+  class SqliteGraphRepository {
+    - conn : Connection
+    + loadSubgraph(q : GraphQuery) : Subgraph
+    + upsertNode(n : GraphNode) : void
+    + upsertEdge(e : GraphEdge) : void
+    + deleteNode(nodeId : String) : void
+  }
+
+  class Neo4jGraphRepository {
+    - driver : Driver
+    + loadSubgraph(q : GraphQuery) : Subgraph
+    + upsertNode(n : GraphNode) : void
+    + upsertEdge(e : GraphEdge) : void
+    + deleteNode(nodeId : String) : void
+  }
+
+  enum EntityCategory {
+    LOCATION
+    GATEWAY
+    DEVICE
+    USER
+    ALARM
+  }
+}
+
+Ontology "1" *-- "2..*" EntityType : 定义 >
+Ontology "1" *-- "2..*" RelationType : 定义 >
+KnowledgeGraph "1" *-- "1..*" GraphNode : 包含 >
+KnowledgeGraph "1" *-- "0..*" GraphEdge : 包含 >
+KnowledgeGraph "1" --> "1" Ontology : 依据 >
+GraphNode "1" --> "1" EntityType : 实例化 >
+GraphEdge "1" --> "1" RelationType : 实例化 >
+GraphEdge "1" --> "1" GraphNode : 源节点
+GraphEdge "1" --> "1" GraphNode : 目标节点
+GraphQuery "1" ..> "1" Subgraph : 产生 >
+KnowledgeGraph ..|> GraphRepository : 委托
+GraphRepository <|.. SqliteGraphRepository
+GraphRepository <|.. Neo4jGraphRepository
+note right of Neo4jGraphRepository
+  可选实现：图数据库方案，
+  与 SQLite 方案遵循同一
+  GraphRepository 接口
+end note
+note bottom of GraphNode
+  props 为模式自由属性袋，
+  由 Ontology.propertySchema 校验
+end note
+@enduml

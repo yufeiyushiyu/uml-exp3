@@ -1,0 +1,39 @@
+@startuml
+skinparam defaultFontName "Noto Sans CJK SC"
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam state {
+  BackgroundColor #F2F6FC
+  BorderColor #4A6FA5
+  ArrowColor #4A6FA5
+}
+skinparam activity {
+  BackgroundColor #F2F6FC
+  BorderColor #4A6FA5
+  ArrowColor #4A6FA5
+  DiamondBackgroundColor #FFF6E5
+}
+[*] --> 已登记 : 管理员登记设备档案
+已登记 --> 在线 : 网关心跳到达 / 首帧遥测校验通过
+在线 --> 在线 : 周期遥测上报 / 属性刷新
+在线 --> 离线 : 心跳超时 90 秒
+离线 --> 在线 : 心跳恢复
+在线 --> 故障 : 连续 3 帧校验失败 或 自检异常
+离线 --> 故障 : 离线超过 30 分钟且重连失败
+故障 --> 检修 : 管理员派单
+检修 --> 在线 : 修复完成且自检通过
+故障 --> 报废 : 判定不可修复
+离线 --> 报废 : 管理员注销
+在线 --> 报废 : 管理员注销
+报废 --> [*]
+
+note right of 离线
+  离线期间图谱节点置灰，
+  保留最后已知属性值并标注
+  "数据时效性：已过期"
+end note
+note left of 故障
+  进入故障态时自动生成
+  CRITICAL 级告警
+end note
+@enduml

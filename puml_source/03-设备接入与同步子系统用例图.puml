@@ -1,0 +1,42 @@
+@startuml
+skinparam defaultFontName "Noto Sans CJK SC"
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam actorStyle awesome
+skinparam usecase {
+  BackgroundColor #F2F6FC
+  BorderColor #4A6FA5
+  ArrowColor #4A6FA5
+}
+skinparam rectangle {
+  BackgroundColor #FFFFFF
+  BorderColor #9DB2C8
+}
+left to right direction
+actor "网关设备" as GW <<外部系统>>
+actor "系统管理员" as Admin
+
+rectangle "设备接入与数据同步子系统" {
+  usecase "网关注册与鉴权" as UC1
+  usecase "上报遥测报文" as UC2
+  usecase "解析与校验报文" as UC3
+  usecase "落库时序读数" as UC4
+  usecase "更新节点属性" as UC5
+  usecase "推送图谱增量事件" as UC6
+  usecase "维护设备档案与绑定位置" as UC7
+  usecase "标记设备离线" as UC8
+}
+
+GW --> UC1
+GW --> UC2
+Admin --> UC7
+UC2 ..> UC3 : <<include>>
+UC3 ..> UC4 : <<include>>
+UC3 ..> UC5 : <<include>>
+UC5 ..> UC6 : <<include>>
+UC1 <.. UC8 : <<extend>>
+note right of UC8
+  心跳超时 90 秒后
+  由同步子系统判定离线
+end note
+@enduml

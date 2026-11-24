@@ -1,0 +1,56 @@
+@startuml
+skinparam defaultFontName "Noto Sans CJK SC"
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam sequence {
+  ArrowColor #4A6FA5
+  LifeLineBorderColor #9DB2C8
+  LifeLineBackgroundColor #F4F8FD
+  ParticipantBackgroundColor #F2F6FC
+  ParticipantBorderColor #4A6FA5
+  GroupBackgroundColor #FFFDF5
+  GroupBorderColor #C9A227
+}
+autonumber
+actor "系统管理员" as A
+boundary "设备管理页" as UI
+control "设备 API\nDeviceController" as API
+control "注册服务\nDeviceRegistry" as REG
+control "图谱服务\nGraphService" as GSVC
+database "设备表 / locations 表" as DB
+boundary "网关设备" as GW
+
+A -> UI : 填写设备登记表
+UI -> API : POST /api/devices {model, locationId, gatewayId, metrics, actions}
+activate API
+API -> REG : register(DeviceDraft)
+activate REG
+REG -> DB : 校验 locationId 是否存在
+activate DB
+DB --> REG : 存在 / 不存在
+deactivate DB
+
+alt 位置存在
+  REG -> REG : 按 model 匹配类型模板，带出指标与动作
+  REG -> DB : INSERT device / metric / action
+  REG -> GSVC : addNode(nodeId) + addEdge(位于/连接)
+  activate GSVC
+  GSVC --> REG : nodeId
+  deactivate GSVC
+  REG --> API : Device{deviceId, accessKey}
+  API --> UI : 201 Created
+  UI --> A : 显示设备卡片（状态：已登记待激活）
+  GW -> API : POST /api/gateways/{gwId}/devices {accessKey}
+  API -> REG : activate(deviceId)
+  REG -> GSVC : updateStatus(nodeId, REGISTERED)
+  GSVC --> UI : push graph.node.added
+  UI --> A : 图谱中新节点由浅色变为可交互
+else 位置不存在
+  REG --> API : 422 {code=LOCATION_NOT_FOUND}
+  API --> UI : 422
+  UI --> A : 提示"请先创建位置节点"
+end
+
+deactivate REG
+deactivate API
+@enduml

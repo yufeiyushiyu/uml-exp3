@@ -1,0 +1,53 @@
+@startuml
+skinparam defaultFontName "Noto Sans CJK SC"
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam state {
+  BackgroundColor #F2F6FC
+  BorderColor #4A6FA5
+  ArrowColor #4A6FA5
+}
+skinparam activity {
+  BackgroundColor #F2F6FC
+  BorderColor #4A6FA5
+  ArrowColor #4A6FA5
+  DiamondBackgroundColor #FFF6E5
+}
+start
+:系统管理员提交设备登记表
+（型号、位置、所属网关、指标与动作）;
+:注册服务按型号匹配设备类型模板;
+if (型号是否在类型库中?) then (是)
+  :自动带出指标集与动作白名单;
+else (否)
+  :以"通用设备"模板建档;
+  :标记为待补充动作定义，暂不可操控;
+endif
+:校验位置编码是否存在于位置树;
+if (位置编码是否存在?) then (是)
+  :建立"位于"关系边;
+  :建立"连接"关系边（设备→网关）;
+  :写入实体节点与属性;
+  :返回设备标识与接入密钥;
+else (否)
+  :拒绝登记并提示先创建位置;
+  :管理员补充位置节点后重试;
+  stop
+endif
+:网关携带接入密钥发起注册;
+:注册服务校验密钥与网关容量;
+if (校验通过且容量未满?) then (是)
+  :设备置为已登记，等待首帧遥测;
+  :推送 graph.node.added 事件;
+  :管理员在图谱中看到新节点（浅色待激活）;
+else (否)
+  :拒绝入网并记录原因;
+  :管理员收到入网失败通知;
+endif
+stop
+floating note left
+  参与者：系统管理员、网关设备
+  协作组件：注册服务、图谱服务、
+  设备注册表
+end note
+@enduml

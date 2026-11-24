@@ -1,0 +1,47 @@
+@startuml
+skinparam defaultFontName "Noto Sans CJK SC"
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam sequence {
+  ArrowColor #4A6FA5
+  LifeLineBorderColor #9DB2C8
+  LifeLineBackgroundColor #F4F8FD
+  ParticipantBackgroundColor #F2F6FC
+  ParticipantBorderColor #4A6FA5
+  GroupBackgroundColor #FFFDF5
+  GroupBorderColor #C9A227
+}
+autonumber
+actor "运维工程师" as U
+boundary "趋势查询页" as UI
+control "历史查询 API\nHistoryController" as API
+control "历史查询服务\nHistoryQueryService" as SVC
+entity "读数仓储\nSqliteObservationRepository" as REPO
+database "observations 表" as DB
+
+U -> UI : 选择设备、指标与时间范围
+UI -> API : GET /api/history?deviceId=TH-301&metric=temperature&from&to
+activate API
+API -> SVC : query(deviceId, metricKey, from, to)
+activate SVC
+SVC -> REPO : query(...)
+activate REPO
+REPO -> DB : SELECT value, ts FROM observations WHERE ... ORDER BY ts
+activate DB
+DB --> REPO : 原始读数序列
+deactivate DB
+REPO --> SVC : List<Observation>
+deactivate REPO
+SVC -> SVC : 按 bucketMin 聚合为 MetricSeries
+SVC --> API : List<MetricSeries>
+deactivate SVC
+API --> UI : 200 OK
+deactivate API
+UI -> UI : 绘制折线图并标注告警时间点
+UI --> U : 展示趋势曲线
+
+opt 点数超过 2000
+  UI -> API : GET /api/history?agg=5min
+  API --> UI : 降采样结果
+end
+@enduml

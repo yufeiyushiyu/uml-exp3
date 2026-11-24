@@ -1,0 +1,106 @@
+@startuml
+skinparam defaultFontName "Noto Sans CJK SC"
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+skinparam class {
+  BackgroundColor #FAFCFF
+  BorderColor #4A6FA5
+  ArrowColor #4A6FA5
+}
+skinparam package {
+  BackgroundColor #FFFFFF
+  BorderColor #9DB2C8
+}
+package "告警与历史域 alarm" {
+
+  class AlarmRule {
+    - ruleId : String
+    - metricKey : String
+    - operator : String
+    - threshold : Double
+    - durationSec : Integer
+    - level : AlarmLevel
+    - enabled : Boolean
+    + evaluate(obs : Observation) : Boolean
+  }
+
+  class Alarm {
+    - alarmId : String
+    - sourceNodeId : String
+    - metricKey : String
+    - level : AlarmLevel
+    - state : AlarmState
+    - triggeredAt : DateTime
+    - acknowledgedBy : String
+    - resolution : String
+    + acknowledge(userId : String) : void
+    + close(resolution : String) : void
+  }
+
+  class AlarmService {
+    - rules : List<AlarmRule>
+    - notifiers : List<Notifier>
+    - audit : AuditService
+    + onObservation(obs : Observation) : List<Alarm>
+    + raiseAlarm(rule : AlarmRule, obs : Observation) : Alarm
+  }
+
+  interface Notifier <<interface>> {
+    + notify(alarm : Alarm) : void
+  }
+
+  class WebSocketNotifier
+  class SmsNotifier
+
+  class HistoryQueryService {
+    - repo : ObservationRepository
+    + query(deviceId : String, metricKey : String, from : DateTime, to : DateTime) : List<Observation>
+    + aggregate(deviceId : String, metricKey : String, bucketMin : Integer) : List<MetricSeries>
+  }
+
+  class MetricSeries {
+    - deviceId : String
+    - metricKey : String
+    - bucketStart : DateTime
+    - minValue : Double
+    - maxValue : Double
+    - avgValue : Double
+  }
+
+  interface ObservationRepository <<interface>> {
+    + query(deviceId : String, metricKey : String, from : DateTime, to : DateTime) : List<Observation>
+    + save(obs : Observation) : void
+  }
+
+  class SqliteObservationRepository
+
+  enum AlarmLevel {
+    INFO
+    WARN
+    CRITICAL
+  }
+
+  enum AlarmState {
+    RAISED
+    ACKNOWLEDGED
+    CLOSED
+    IGNORED
+  }
+}
+
+AlarmService "1" o-- "1..*" AlarmRule : 依据 >
+AlarmService "1" --> "0..*" Alarm : 产生 >
+AlarmService "1" o-- "1..*" Notifier : 通知 >
+Notifier <|.. WebSocketNotifier
+Notifier <|.. SmsNotifier
+Alarm "1" --> "1" AlarmState : 处于 >
+Alarm "0..*" ..> "1" Observation : 证据 >
+HistoryQueryService --> ObservationRepository : 依赖 >
+ObservationRepository <|.. SqliteObservationRepository
+HistoryQueryService ..> MetricSeries : 汇总为 >
+note bottom of AlarmRule
+  支持"持续 durationSec 秒超阈值"
+  的抖动抑制，避免瞬时毛刺误报
+end note
+@enduml

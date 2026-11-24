@@ -1,0 +1,66 @@
+@startuml
+skinparam defaultFontName "Noto Sans CJK SC"
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+skinparam class {
+  BackgroundColor #FAFCFF
+  BorderColor #4A6FA5
+  ArrowColor #4A6FA5
+}
+skinparam package {
+  BackgroundColor #FFFFFF
+  BorderColor #9DB2C8
+}
+object "园区:A栋" as locA {
+  locationId = "L-A"
+  name = "A栋"
+  level = 1
+}
+object "楼层:A栋3F" as loc3 {
+  locationId = "L-A-3"
+  name = "3F"
+  level = 2
+}
+object "房间:301" as room301 {
+  locationId = "L-A-3-301"
+  name = "301教室"
+  level = 3
+}
+object "网关:GW-01" as gw {
+  gatewayId = "GW-01"
+  protocol = "MQTT"
+  state = "CONNECTED"
+}
+object "温度传感器:TH-301" as sensor {
+  deviceId = "TH-301"
+  model = "SHT-20"
+  status = "ONLINE"
+}
+object "空调执行器:AC-301" as ac {
+  deviceId = "AC-301"
+  model = "GREE-KFR35"
+  status = "ONLINE"
+}
+object ":Metric" as m1 {
+  key = "temperature"
+  unit = "℃"
+}
+object ":Action" as a1 {
+  actionId = "setTargetTemp"
+  name = "设定目标温度"
+}
+
+locA -- loc3 : locatedIn {parent}
+loc3 -- room301 : locatedIn
+room301 -- gw : contains
+gw -- sensor : connectedTo
+gw -- ac : connectedTo
+sensor -- m1 : hasMetric
+ac -- a1 : supportsAction
+note right of a1
+  对象图用于说明"图谱节点-边"
+  与领域对象之间的映射关系，
+  可直接对照 SQLite 表记录阅读
+end note
+@enduml

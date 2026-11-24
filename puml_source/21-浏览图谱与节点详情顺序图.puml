@@ -1,0 +1,60 @@
+@startuml
+skinparam defaultFontName "Noto Sans CJK SC"
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam sequence {
+  ArrowColor #4A6FA5
+  LifeLineBorderColor #9DB2C8
+  LifeLineBackgroundColor #F4F8FD
+  ParticipantBackgroundColor #F2F6FC
+  ParticipantBorderColor #4A6FA5
+  GroupBackgroundColor #FFFDF5
+  GroupBorderColor #C9A227
+}
+autonumber
+actor "值班员" as U
+boundary "图谱视图\n（Vue3 + vis-network）" as UI
+control "图谱 API\nGraphController" as API
+control "图谱服务\nGraphService" as SVC
+entity "图谱仓储\nGraphRepository" as REPO
+database "图谱库\nSQLite" as DB
+
+U -> UI : 打开平台首页
+UI -> API : GET /api/graph?limit=300&depth=2
+activate API
+API -> SVC : query(GraphQuery)
+activate SVC
+SVC -> REPO : loadSubgraph(q)
+activate REPO
+REPO -> DB : SELECT nodes / edges WHERE 条件
+activate DB
+DB --> REPO : 节点与边记录集
+deactivate DB
+REPO --> SVC : Subgraph
+deactivate REPO
+SVC --> API : Subgraph(含 toViewJson)
+deactivate SVC
+API --> UI : 200 OK {nodes, edges, truncated}
+deactivate API
+UI -> UI : 计算力导向布局并渲染
+UI --> U : 展示全局图谱（超限时提示已分区加载）
+
+U -> UI : 点选某个设备节点
+UI -> API : GET /api/graph/node/{nodeId}
+activate API
+API -> SVC : detail(nodeId)
+activate SVC
+SVC -> REPO : loadNodeWithNeighbors(nodeId, 1)
+activate REPO
+REPO -> DB : SELECT 节点属性 + 一度邻居
+activate DB
+DB --> REPO : 属性与邻居
+deactivate DB
+REPO --> SVC : Subgraph
+deactivate REPO
+SVC --> API : NodeDetail(属性、实时读数、可用动作)
+deactivate SVC
+API --> UI : 200 OK
+deactivate API
+UI --> U : 右侧详情面板显示属性与动作白名单
+@enduml

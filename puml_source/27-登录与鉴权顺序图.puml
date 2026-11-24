@@ -1,0 +1,54 @@
+@startuml
+skinparam defaultFontName "Noto Sans CJK SC"
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam sequence {
+  ArrowColor #4A6FA5
+  LifeLineBorderColor #9DB2C8
+  LifeLineBackgroundColor #F4F8FD
+  ParticipantBackgroundColor #F2F6FC
+  ParticipantBorderColor #4A6FA5
+  GroupBackgroundColor #FFFDF5
+  GroupBorderColor #C9A227
+}
+autonumber
+actor "用户" as U
+boundary "登录页" as UI
+control "认证 API\nAuthController" as API
+control "认证服务\nAuthService" as AUTH
+control "审计服务\nAuditService" as AUD
+database "users / roles 表" as DB
+
+U -> UI : 输入账号与密码
+UI -> API : POST /api/auth/login
+activate API
+API -> AUTH : login(account, password)
+activate AUTH
+AUTH -> DB : SELECT user WHERE account=?
+activate DB
+DB --> AUTH : user(含 passwordHash, roleIds)
+deactivate DB
+
+alt 账号存在且密码校验通过
+  AUTH -> DB : SELECT 角色与权限
+  DB --> AUTH : permissions
+  AUTH -> AUTH : 生成会话令牌，有效期 8 小时
+  AUTH -> AUD : record(登录成功, userId)
+  AUTH --> API : Session{token, expiresAt}
+  API --> UI : 200 {token, roles}
+  UI --> U : 进入图谱首页（按角色裁剪可见动作）
+else 校验失败
+  AUTH -> AUD : record(登录失败, account, IP)
+  AUTH --> API : 抛出 AuthenticationError
+  API --> UI : 401 {code=BAD_CREDENTIALS}
+  UI --> U : 提示"账号或密码错误"
+end
+
+deactivate AUTH
+deactivate API
+
+U -> API : GET /api/graph（携带 Bearer token）
+API -> AUTH : authorize(token, "GRAPH", "READ")
+AUTH --> API : true
+API --> U : 200 图谱数据
+@enduml

@@ -1,0 +1,47 @@
+@startuml
+skinparam defaultFontName "Noto Sans CJK SC"
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam component {
+  BackgroundColor #F2F6FC
+  BorderColor #4A6FA5
+}
+skinparam package {
+  BackgroundColor #FFFFFF
+  BorderColor #9DB2C8
+}
+skinparam node {
+  BackgroundColor #FBFBF7
+  BorderColor #8A8A6E
+}
+skinparam database {
+  BackgroundColor #F2F6FC
+  BorderColor #4A6FA5
+}
+skinparam arrow {
+  Color #4A6FA5
+}
+top to bottom direction
+package "kgcore 图谱核心" as KG
+package "device 设备与接入" as DEV
+package "control 操控与规则" as CTL
+package "alarm 告警与历史" as ALM
+package "auth 权限与审计" as AUTH
+
+KG ..> DEV : <<import>> 节点映射设备属性
+DEV ..> KG : <<import>> 属性变更写回节点
+CTL ..> DEV : <<import>> 取动作白名单
+CTL ..> AUTH : <<import>> 校验操控权限
+ALM ..> DEV : <<import>> 读取数值域
+ALM ..> AUTH : <<import>> 审计留痕
+CTL ..> ALM : <<import>> 失败时产生告警
+note right of KG
+  kgcore 为最底层公共包，
+  仅依赖 JDK/Python 标准库，
+  不反向依赖其他领域包
+end note
+note bottom of AUTH
+  auth 不依赖 kgcore，
+  以避免"鉴权→图谱→鉴权"的循环
+end note
+@enduml

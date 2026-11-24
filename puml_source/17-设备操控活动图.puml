@@ -1,0 +1,60 @@
+@startuml
+skinparam defaultFontName "Noto Sans CJK SC"
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam state {
+  BackgroundColor #F2F6FC
+  BorderColor #4A6FA5
+  ArrowColor #4A6FA5
+}
+skinparam activity {
+  BackgroundColor #F2F6FC
+  BorderColor #4A6FA5
+  ArrowColor #4A6FA5
+  DiamondBackgroundColor #FFF6E5
+}
+start
+:在图谱中找到目标设备节点;
+:点选节点，展开节点详情;
+:从动作白名单中选择动作;
+:填写动作参数;
+if (参数格式与区间是否合法?) then (合法)
+  :操控服务组装指令对象，状态置为校验中;
+  :校验角色权限、设备归属与参数区间;
+  if (校验是否通过?) then (通过)
+    :状态置为待撤销，向操作者回显确认提示;
+    :操作者确认下发;
+    :状态置为下发中;
+    :经 MQTT 通道投递到设备所属网关;
+    :状态置为等待回执;
+    if (在超时窗口内收到 ACK?) then (是)
+      :状态置为执行成功;
+      :刷新图谱节点属性并推送增量事件;
+      :向操作者回显绿色回执气泡;
+      stop
+    else (否)
+      if (重试次数小于上限?) then (是)
+        :重试次数加一，重新投递;
+      else (否)
+        :状态置为执行失败;
+        :写入审计日志并生成告警;
+        :向操作者回显红色失败气泡与可重试提示;
+        stop
+      endif
+    endif
+  else (不通过)
+    :状态置为已拒绝;
+    :记录拒绝原因与操作者，写入审计日志;
+    :向操作者提示权限不足或参数越界;
+    stop
+  endif
+else (不合法)
+  :前端就地校验失败，提示修正参数;
+  stop
+endif
+floating note right
+  参与者：运维工程师（操作者）
+  协作组件：图谱视图、操控服务、
+  网关客户端、审计服务
+end note
+@enduml

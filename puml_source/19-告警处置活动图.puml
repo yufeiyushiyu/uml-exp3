@@ -1,0 +1,46 @@
+@startuml
+skinparam defaultFontName "Noto Sans CJK SC"
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam state {
+  BackgroundColor #F2F6FC
+  BorderColor #4A6FA5
+  ArrowColor #4A6FA5
+}
+skinparam activity {
+  BackgroundColor #F2F6FC
+  BorderColor #4A6FA5
+  ArrowColor #4A6FA5
+  DiamondBackgroundColor #FFF6E5
+}
+start
+:告警服务产生告警;
+:按等级与抑制窗口决定是否推送;
+:运维工程师在告警列表查看详情;
+:查看同节点历史曲线，判断原因;
+if (是否为已知误报?) then (是)
+  :标记为误报并填写原因;
+  :告警状态置为已忽略;
+  :将该规则加入待复核清单，供管理员调整阈值;
+  stop
+else (否)
+  :运维工程师确认告警;
+  :告警状态置为已确认，记录确认人;
+  if (是否需要远程处置?) then (是)
+    :在图谱中定位设备节点;
+    :下发处置动作（如复位、关机）;
+    :操控服务执行指令并回执;
+    :指标恢复后由告警服务自动关闭告警;
+  else (否)
+    :派发现场工单;
+    :现场处置完成后填写结论;
+    :告警状态置为已关闭;
+  endif
+  stop
+endif
+floating note left
+  参与者：运维工程师、系统管理员
+  协作组件：告警服务、操控服务、
+  通知器、审计服务
+end note
+@enduml

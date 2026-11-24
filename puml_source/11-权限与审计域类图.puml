@@ -1,0 +1,93 @@
+@startuml
+skinparam defaultFontName "Noto Sans CJK SC"
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+skinparam class {
+  BackgroundColor #FAFCFF
+  BorderColor #4A6FA5
+  ArrowColor #4A6FA5
+}
+skinparam package {
+  BackgroundColor #FFFFFF
+  BorderColor #9DB2C8
+}
+package "权限与审计域 auth" {
+
+  class User {
+    - userId : String
+    - account : String
+    - name : String
+    - passwordHash : String
+    - roleIds : List<String>
+    - status : Integer
+    + verifyPassword(raw : String) : Boolean
+  }
+
+  class Role {
+    - roleId : String
+    - code : String
+    - name : String
+    - permissions : List<Permission>
+    + hasPermission(resourceType : String, action : String) : Boolean
+  }
+
+  class Permission {
+    - permissionId : String
+    - resourceType : String
+    - action : String
+    - scope : String
+  }
+
+  class AuthService {
+    - users : UserRepository
+    - sessions : SessionRepository
+    - audit : AuditService
+    + login(account : String, pwd : String) : Session
+    + authorize(token : String, resourceType : String, action : String) : Boolean
+    + logout(token : String) : void
+  }
+
+  class Session {
+    - sessionId : String
+    - userId : String
+    - expiresAt : DateTime
+    - clientIp : String
+    + isValid() : Boolean
+  }
+
+  class AuditLog {
+    - logId : String
+    - userId : String
+    - operation : String
+    - targetId : String
+    - result : String
+    - ts : DateTime
+  }
+
+  class AuditService {
+    - repo : AuditRepository
+    + record(userId : String, op : String, target : String, result : String) : void
+    + query(from : DateTime, to : DateTime, userId : String) : List<AuditLog>
+  }
+
+  class PolicyService {
+    - authService : AuthService
+    + canOperateDevice(userId : String, deviceId : String, actionId : String) : Boolean
+    + deviceScope(userId : String) : List<String>
+  }
+}
+
+User "1" -- "1..*" Role : 拥有 >
+Role "1" *-- "1..*" Permission : 包含 >
+AuthService "1" --> "1" User : 认证 >
+AuthService "1" --> "0..*" Session : 创建 >
+Session "1" --> "1" User : 归属 >
+AuditService "1" --> "0..*" AuditLog : 记录 >
+PolicyService --> AuthService : 委托鉴权
+note right of AuditLog
+  操控类操作的审计不可关闭：
+  指令、告警处置、权限变更
+  三类操作强制留痕
+end note
+@enduml

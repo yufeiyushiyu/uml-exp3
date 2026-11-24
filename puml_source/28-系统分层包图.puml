@@ -1,0 +1,83 @@
+@startuml
+skinparam defaultFontName "Noto Sans CJK SC"
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam component {
+  BackgroundColor #F2F6FC
+  BorderColor #4A6FA5
+}
+skinparam package {
+  BackgroundColor #FFFFFF
+  BorderColor #9DB2C8
+}
+skinparam node {
+  BackgroundColor #FBFBF7
+  BorderColor #8A8A6E
+}
+skinparam database {
+  BackgroundColor #F2F6FC
+  BorderColor #4A6FA5
+}
+skinparam arrow {
+  Color #4A6FA5
+}
+left to right direction
+package "物联知图平台" {
+
+  package "表现层 ui" as UI {
+    package "图谱视图" as UI1
+    package "节点详情面板" as UI2
+    package "告警面板" as UI3
+    package "设备管理页" as UI4
+  }
+
+  package "接口层 api" as API {
+    package "图谱控制器" as API1
+    package "设备控制器" as API2
+    package "操控控制器" as API3
+    package "告警控制器" as API4
+    package "认证控制器" as API5
+    package "WebSocketHub" as API6
+  }
+
+  package "应用服务层 app" as APP {
+    package "图谱服务" as APP1
+    package "接入服务" as APP2
+    package "操控服务" as APP3
+    package "告警服务" as APP4
+    package "历史查询服务" as APP5
+    package "规则引擎" as APP6
+  }
+
+  package "领域层 domain" as DOM {
+    package "kgcore 图谱核心" as KG
+    package "device 设备与接入" as DEV
+    package "control 操控与规则" as CTL
+    package "alarm 告警与历史" as ALM
+    package "auth 权限与审计" as AUTH
+  }
+
+  package "基础设施层 infra" as INFRA {
+    package "SqliteGraphRepository" as I1
+    package "Neo4jGraphRepository" as I2
+    package "SqliteObservationRepository" as I3
+    package "MqttGatewayClient" as I4
+    package "TokenStore" as I5
+  }
+}
+
+UI --> API : HTTP / WebSocket
+API --> APP : 调用应用服务
+APP --> DOM : 使用领域模型
+APP --> INFRA : 通过仓储访问外部
+INFRA --> DOM : 实现领域接口
+note right of DOM
+  领域层不依赖任何外层：
+  外部依赖均以接口形式
+  由 infra 实现，保证可替换
+end note
+note bottom of UI
+  表现层只持有视图状态，
+  不做业务判定
+end note
+@enduml

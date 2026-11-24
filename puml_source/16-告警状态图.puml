@@ -1,0 +1,30 @@
+@startuml
+skinparam defaultFontName "Noto Sans CJK SC"
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam state {
+  BackgroundColor #F2F6FC
+  BorderColor #4A6FA5
+  ArrowColor #4A6FA5
+}
+skinparam activity {
+  BackgroundColor #F2F6FC
+  BorderColor #4A6FA5
+  ArrowColor #4A6FA5
+  DiamondBackgroundColor #FFF6E5
+}
+[*] --> 已产生 : 阈值规则命中且持续达标
+已产生 --> 已推送 : 通知器推送成功
+已推送 --> 已确认 : 运维工程师确认
+已推送 --> 已忽略 : 运维工程师判定误报
+已确认 --> 已关闭 : 现场处置完成并填写结论
+已产生 --> 已关闭 : 指标 60 秒内自动恢复
+已忽略 --> [*]
+已关闭 --> [*]
+已关闭 --> 已产生 : 同一规则在 5 分钟内再次命中
+
+note bottom of 已推送
+  同一 (节点, 指标, 等级) 组合在
+  抑制窗口内只推送一次，避免告警风暴
+end note
+@enduml
