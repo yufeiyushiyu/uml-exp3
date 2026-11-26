@@ -1,0 +1,60 @@
+@startuml
+' AI 原始输出（v2 提示词），未经人工修正
+' 保留目的：作为评估依据
+
+class Device {
+  - deviceId : String
+  - name : String
+  - status : String
+  + execute() : void
+}
+
+class Sensor {
+  - temperature : double
+  - humidity : double
+}
+
+class Actuator {
+  - action : String
+}
+
+class Gateway {
+  - gatewayId : String
+  - ip : String
+}
+
+class Command {
+  - commandId : String
+  - params : String
+  + send() : boolean
+}
+
+class CommandExecutor {
+  + submit(cmd : Command) : boolean
+}
+
+class Location {
+  - locationId : String
+  - name : String
+}
+
+class User {
+  - userId : String
+  - role : String
+}
+
+class Property {
+  - key : String
+  - value : String
+}
+
+Sensor <|-- Device
+Actuator <|-- Device
+Gateway "1" -- "1" Device
+Location "1" *-- "1" Device
+Device --> User
+User --> Command
+CommandExecutor --> Command
+Device ..> Property
+Gateway --> MQTTBroker
+@enduml

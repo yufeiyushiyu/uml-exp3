@@ -1,0 +1,32 @@
+@startuml
+' AI 原始输出（v3 提示词），未经人工修正
+' 保留目的：作为系统性评估依据
+left to right direction
+actor 运维工程师 as Ops
+actor 系统管理员 as Admin
+actor 普通用户 as Viewer
+actor 网关设备 as GW
+
+rectangle 物联知图平台 {
+  usecase "浏览图谱" as UC1
+  usecase "查看节点详情" as UC2
+  usecase "选择动作" as UC3
+  usecase "提交指令" as UC4
+  usecase "下发指令" as UC5
+  usecase "接收执行结果" as UC6
+  usecase "维护设备档案" as UC7
+  usecase "配置告警规则" as UC8
+}
+
+Ops --> UC1
+Ops --> UC3
+Ops --> UC4
+Admin --> UC7
+Admin --> UC8
+Viewer --> UC1
+GW --> UC6
+UC1 ..> UC2 : <<include>>
+UC3 ..> UC4 : <<include>>
+UC4 ..> UC5 : <<include>>
+UC5 ..> UC6 : <<include>>
+@enduml

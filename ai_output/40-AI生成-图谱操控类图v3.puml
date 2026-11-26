@@ -1,0 +1,91 @@
+@startuml
+' AI 原始输出（v3 提示词），未经人工修正
+' 保留目的：作为系统性评估依据
+
+class KnowledgeGraph {
+  - nodes : Map
+  - edges : List
+  + addNode(node : GraphNode) : void
+  + query(keyword : String) : List
+}
+
+class GraphNode {
+  - nodeId : String
+  - etype : String
+  - props : Map
+  - version : int
+}
+
+class GraphEdge {
+  - rtype : String
+  - src : String
+  - dst : String
+}
+
+class Ontology {
+  - entityTypes : List
+  - relationTypes : List
+}
+
+abstract class Device {
+  # deviceId : String
+  # name : String
+  # status : String
+  + snapshot() : Map
+}
+
+class Sensor {
+  - samplingPeriod : int
+  + readValue() : double
+}
+
+class Actuator {
+  - supportedActions : List
+  + execute(actionId : String) : boolean
+}
+
+class Command {
+  - commandId : String
+  - deviceId : String
+  - actionId : String
+  - state : String
+  - issuedBy : String
+}
+
+class CommandExecutor {
+  - maxRetry : int
+  + submit(cmd : Command) : boolean
+}
+
+class PermissionChecker {
+  + check(userId : String, deviceId : String) : boolean
+}
+
+class Gateway {
+  - gatewayId : String
+  - protocol : String
+}
+
+class Location {
+  - locationId : String
+  - level : int
+}
+
+class AIEngine {
+  - model : String
+  + suggest() : List
+}
+
+Device <|-- Sensor
+Device <|-- Actuator
+Device --> Gateway : 连接
+Device --> Location : 位于
+Location o-- Location : 层级
+Device --> Command : 执行
+CommandExecutor --> Command
+CommandExecutor ..> PermissionChecker
+KnowledgeGraph *-- GraphNode
+KnowledgeGraph *-- GraphEdge
+KnowledgeGraph ..> Ontology
+AIEngine ..> KnowledgeGraph
+@enduml

@@ -1,0 +1,32 @@
+@startuml
+' AI 原始输出（v1 提示词），未经人工修正
+' 保留目的：作为评估依据，缺陷对照见实验报告第 6 章
+left to right direction
+actor 用户 as U
+actor 管理员 as A
+actor 数据库 as DB
+actor 消息队列 as MQ
+actor 图数据库 as Neo
+
+rectangle 物联网设备管理平台 {
+  usecase "管理设备" as UC1
+  usecase "点击节点" as UC2
+  usecase "拖拽画布" as UC3
+  usecase "操控设备" as UC4
+  usecase "查看数据" as UC5
+  usecase "AI智能推荐设备" as UC6
+  usecase "自动生成巡检报告" as UC7
+}
+
+U --> UC1
+U --> UC2
+U --> UC3
+U --> UC4
+U --> UC5
+A --> UC1
+DB --> UC1
+MQ --> UC4
+Neo --> UC5
+UC6 --> UC4
+UC7 --> UC1
+@enduml
