@@ -1,0 +1,136 @@
+/* 物联知图平台 —— 界面样式
+   设计原则（对应概要设计中的"界面设计原则"）：
+   1. 图谱为主视图，业务面板为辅助视图，不抢主体；
+   2. 状态用颜色语义：绿=在线、灰=离线、红=故障/告警；
+   3. 所有可点元素有 hover 反馈，操控类按钮二次确认。 */
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: "Noto Sans CJK SC", "Microsoft YaHei", sans-serif;
+  background: #f7f9fc;
+  color: #24313f;
+}
+
+/* ---------- 登录 ---------- */
+#login-mask {
+  position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(135deg, #1f3a5f, #2e86ab);
+  z-index: 10;
+}
+.login-card {
+  width: 360px; background: #fff; border-radius: 14px; padding: 28px 26px;
+  box-shadow: 0 18px 40px rgba(15, 35, 60, .25);
+}
+.login-card h1 { margin: 0 0 6px; font-size: 22px; color: #1f3a5f; }
+.login-card .sub { margin: 0 0 20px; color: #7b8794; font-size: 13px; }
+.login-card label { display: block; font-size: 13px; color: #4a5a6a; margin-bottom: 14px; }
+.login-card input {
+  width: 100%; margin-top: 6px; padding: 9px 11px; border: 1px solid #d3dce6;
+  border-radius: 8px; font-size: 14px;
+}
+.login-card button {
+  width: 100%; padding: 10px; border: 0; border-radius: 8px; cursor: pointer;
+  background: #2e86ab; color: #fff; font-size: 15px;
+}
+.login-card .hint { margin-top: 14px; font-size: 12px; color: #8a97a5; line-height: 1.6; }
+
+/* ---------- 顶栏 ---------- */
+header {
+  display: flex; align-items: center; gap: 18px; padding: 10px 18px;
+  background: #1f3a5f; color: #eaf2fa;
+}
+header .brand { font-weight: 700; letter-spacing: 2px; font-size: 18px; }
+header .filters { display: flex; gap: 8px; align-items: center; flex: 1; }
+header select, header input {
+  padding: 6px 8px; border-radius: 7px; border: 1px solid #3d5b7d;
+  background: #27486e; color: #eaf2fa; font-size: 13px;
+}
+header input { width: 160px; }
+header button {
+  padding: 6px 12px; border-radius: 7px; border: 0; background: #2e86ab;
+  color: #fff; cursor: pointer; font-size: 13px;
+}
+header button.ghost { background: transparent; border: 1px solid #3d5b7d; }
+header .user { font-size: 13px; display: flex; gap: 10px; align-items: center; }
+
+/* ---------- 主体 ---------- */
+main { display: flex; height: calc(100vh - 52px); }
+.canvas-wrap { flex: 1; position: relative; background: #fff; border-right: 1px solid #e3e9f0; }
+#graph { position: absolute; inset: 0; }
+.legend {
+  position: absolute; left: 14px; bottom: 14px; background: rgba(255,255,255,.92);
+  border: 1px solid #e3e9f0; border-radius: 8px; padding: 8px 10px; font-size: 12px; line-height: 1.9;
+}
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; }
+.stat {
+  position: absolute; right: 14px; top: 14px; font-size: 12px; color: #7b8794;
+  background: rgba(255,255,255,.9); padding: 4px 8px; border-radius: 6px;
+}
+
+/* ---------- 右侧面板 ---------- */
+aside {
+  width: 400px; display: flex; flex-direction: column; background: #fbfcfe;
+}
+.tabs { display: flex; border-bottom: 1px solid #e3e9f0; }
+.tab {
+  flex: 1; padding: 10px; border: 0; background: transparent; cursor: pointer;
+  font-size: 14px; color: #5d6b7a;
+}
+.tab.active { color: #1f3a5f; font-weight: 600; box-shadow: inset 0 -2px 0 #2e86ab; }
+.panel { padding: 16px; overflow: auto; flex: 1; }
+.empty { color: #97a3b0; font-size: 13px; padding: 24px 0; text-align: center; }
+h3 { margin: 0 0 10px; font-size: 16px; }
+h4 { margin: 18px 0 8px; font-size: 14px; color: #46586b; }
+.props { font-size: 13px; line-height: 1.9; }
+.props span { color: #7b8794; margin-right: 6px; }
+.badge {
+  display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 12px;
+  background: #e8f1f7; color: #1f6f8b;
+}
+.badge.online { background: #e6f4ea; color: #2f7d4f; }
+.badge.offline { background: #eef1f4; color: #6b7785; }
+.badge.fault { background: #fdecea; color: #b23b2e; }
+
+/* 动作列表与指令区 */
+.action-item {
+  border: 1px solid #e3e9f0; border-radius: 8px; padding: 10px; margin-bottom: 8px; background: #fff;
+}
+.action-item .name { font-size: 13px; font-weight: 600; }
+.action-item .risk { font-size: 12px; color: #b26a00; margin-left: 6px; }
+.action-item input {
+  width: 100%; margin: 8px 0; padding: 6px 8px; border: 1px solid #d3dce6; border-radius: 6px;
+}
+.action-item button, .panel button {
+  padding: 6px 12px; border: 0; border-radius: 7px; background: #2e86ab; color: #fff;
+  cursor: pointer; font-size: 13px;
+}
+button:disabled { background: #c7d2dd; cursor: not-allowed; }
+
+.alarm-row {
+  border-left: 4px solid #c1121f; background: #fff; border-radius: 6px;
+  padding: 10px; margin-bottom: 8px; font-size: 13px;
+}
+.alarm-row.WARN { border-left-color: #e4a11b; }
+.alarm-row.INFO { border-left-color: #2e86ab; }
+.alarm-row .meta { color: #7b8794; font-size: 12px; margin-top: 4px; }
+
+.cmd-row { background: #fff; border: 1px solid #e3e9f0; border-radius: 6px; padding: 9px; margin-bottom: 8px; font-size: 13px; }
+.cmd-row .state { float: right; font-size: 12px; }
+
+/* ---------- 确认弹层 ---------- */
+#confirm-mask {
+  position: fixed; inset: 0; background: rgba(20, 35, 55, .45);
+  display: flex; align-items: center; justify-content: center; z-index: 20;
+}
+.confirm-card {
+  width: 380px; background: #fff; border-radius: 12px; padding: 22px;
+  box-shadow: 0 16px 36px rgba(20, 35, 55, .3);
+}
+.confirm-card .row { display: flex; gap: 10px; justify-content: flex-end; margin-top: 16px; }
+.confirm-card button.ghost, .ghost { background: #eef1f4; color: #46586b; }
+
+/* ---------- 工具类 ---------- */
+.hidden { display: none !important; }
+.row { display: flex; gap: 8px; margin-bottom: 10px; }
+canvas#chart { width: 100%; background: #fff; border: 1px solid #e3e9f0; border-radius: 8px; }

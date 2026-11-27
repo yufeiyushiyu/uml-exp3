@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>物联知图平台 · 知识图谱物联网设备管理</title>
+  <link rel="stylesheet" href="/static/style.css" />
+  <!-- vis-network：图谱可视化库；离线部署时请改为本地文件路径 -->
+  <script src="https://unpkg.com/vis-network@9.1.9/standalone/umd/vis-network.min.js"></script>
+</head>
+<body>
+  <!-- 登录层：未登录时覆盖全屏，登录后隐藏 -->
+  <div id="login-mask">
+    <div class="login-card">
+      <h1>物联知图平台</h1>
+      <p class="sub">知识图谱驱动的物联网设备管理与操控</p>
+      <label>账号<input id="account" value="admin" autocomplete="username" /></label>
+      <label>密码<input id="password" type="password" value="admin123" /></label>
+      <button id="login-btn">登录</button>
+      <div class="hint">演示账号：admin/admin123（管理员）、ops/ops123（运维）、viewer/view123（只读）</div>
+    </div>
+  </div>
+
+  <!-- 主界面 -->
+  <div id="app" class="hidden">
+    <header>
+      <div class="brand">物联知图</div>
+      <div class="filters">
+        <select id="loc-filter"><option value="">全部位置</option></select>
+        <select id="type-filter">
+          <option value="">全部实体</option>
+          <option value="SENSOR">传感器</option>
+          <option value="ACTUATOR">执行器</option>
+          <option value="GATEWAY">网关</option>
+          <option value="ROOM,FLOOR,BUILDING,SITE">位置</option>
+        </select>
+        <input id="kw" placeholder="按名称检索" />
+        <button id="reload">刷新图谱</button>
+      </div>
+      <div class="user"><span id="who"></span><button id="logout" class="ghost">退出</button></div>
+    </header>
+
+    <main>
+      <!-- 左：图谱画布 -->
+      <section class="canvas-wrap">
+        <div id="graph"></div>
+        <div class="legend" id="legend"></div>
+        <div class="stat" id="stat"></div>
+      </section>
+
+      <!-- 右：详情与业务面板 -->
+      <aside>
+        <nav class="tabs">
+          <button class="tab active" data-tab="detail">节点详情</button>
+          <button class="tab" data-tab="alarm">告警</button>
+          <button class="tab" data-tab="cmd">指令</button>
+        </nav>
+
+        <div class="panel" id="tab-detail">
+          <div id="node-empty" class="empty">点击图中任一节点查看详情</div>
+          <div id="node-detail" class="hidden">
+            <h3 id="nd-title"></h3>
+            <div id="nd-props" class="props"></div>
+            <div id="nd-actions"></div>
+            <h4>历史曲线</h4>
+            <select id="metric-select"></select>
+            <canvas id="chart" width="360" height="150"></canvas>
+          </div>
+        </div>
+
+        <div class="panel hidden" id="tab-alarm">
+          <div class="row"><button id="alarm-refresh">刷新</button></div>
+          <div id="alarm-list"></div>
+        </div>
+
+        <div class="panel hidden" id="tab-cmd">
+          <div id="cmd-list"></div>
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <!-- 指令确认弹层：体现"待撤销/确认下发"的状态机设计 -->
+  <div id="confirm-mask" class="hidden">
+    <div class="confirm-card">
+      <h3>确认下发指令</h3>
+      <div id="confirm-body"></div>
+      <div class="row">
+        <button id="confirm-ok">确认下发</button>
+        <button id="confirm-cancel" class="ghost">取消</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
